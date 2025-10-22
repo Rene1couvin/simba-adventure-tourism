@@ -100,8 +100,7 @@ const Contact = () => {
                   <Phone className="h-6 w-6 text-primary mt-1" />
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Phone</h3>
-                    <p className="text-muted-foreground">+255 123 456 789</p>
-                    <p className="text-muted-foreground">+255 987 654 321</p>
+                    <p className="text-muted-foreground">+250 788 564 396</p>
                   </div>
                 </div>
               </CardContent>
@@ -113,8 +112,7 @@ const Contact = () => {
                   <Mail className="h-6 w-6 text-primary mt-1" />
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Email</h3>
-                    <p className="text-muted-foreground">info@simbatours.com</p>
-                    <p className="text-muted-foreground">bookings@simbatours.com</p>
+                    <p className="text-muted-foreground">simba.tour.250@gmail.com</p>
                   </div>
                 </div>
               </CardContent>
@@ -126,9 +124,10 @@ const Contact = () => {
                   <MapPin className="h-6 w-6 text-primary mt-1" />
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Office Location</h3>
-                    <p className="text-muted-foreground">Simba Adventure & Tourism</p>
-                    <p className="text-muted-foreground">123 Safari Street</p>
-                    <p className="text-muted-foreground">Dar es Salaam, Tanzania</p>
+                    <p className="text-muted-foreground">Simba Adventure Tours</p>
+                    <p className="text-muted-foreground">KG 551 St, Kigali</p>
+                    <p className="text-muted-foreground">Rwanda</p>
+                    <a href="https://maps.app.goo.gl/UuBCw4zSotmT7Z2d8" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">View on Map</a>
                   </div>
                 </div>
               </CardContent>

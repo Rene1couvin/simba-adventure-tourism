@@ -80,13 +80,18 @@ const About = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {[
+            { name: "BYUKUSENGE Eric", role: "Senior Safari Guide", experience: "15+ years experience" },
+            { name: "NSHIMIYIMANA Fabrice", role: "Tour Coordinator", experience: "10+ years experience" },
+            { name: "NIYONSENGA EEAN Claude", role: "Wildlife Expert", experience: "12+ years experience" },
+            { name: "NISINGIZWE Jean Aime", role: "Operations Manager", experience: "8+ years experience" },
+          ].map((member, i) => (
             <Card key={i} className="text-center overflow-hidden">
               <div className="h-64 bg-gradient-to-br from-primary to-secondary" />
               <CardContent className="pt-6">
-                <h3 className="text-xl font-bold text-foreground mb-1">John Mwangi</h3>
-                <p className="text-sm text-muted-foreground mb-2">Senior Safari Guide</p>
-                <p className="text-xs text-muted-foreground">15+ years experience</p>
+                <h3 className="text-xl font-bold text-foreground mb-1">{member.name}</h3>
+                <p className="text-sm text-muted-foreground mb-2">{member.role}</p>
+                <p className="text-xs text-muted-foreground">{member.experience}</p>
               </CardContent>
             </Card>
           ))}

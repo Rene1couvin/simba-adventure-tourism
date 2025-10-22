@@ -58,15 +58,15 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center space-x-2">
                 <Phone className="h-4 w-4" />
-                <span>+255 123 456 789</span>
+                <span>+250 788 564 396</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Mail className="h-4 w-4" />
-                <span>info@simbatours.com</span>
+                <span>simba.tour.250@gmail.com</span>
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin className="h-4 w-4" />
-                <span>Dar es Salaam, Tanzania</span>
+                <span>Kigali, Rwanda</span>
               </li>
             </ul>
           </div>
