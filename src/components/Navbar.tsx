@@ -1,15 +1,17 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, User, LogOut } from "lucide-react";
+import { Menu, User, LogOut, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { useAdmin } from "@/hooks/useAdmin";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
 
   useEffect(() => {
     // Get initial session
@@ -61,6 +63,13 @@ const Navbar = () => {
             <Link to="/contact" className="text-foreground hover:text-primary transition-colors">
               Contact
             </Link>
+            
+            {isAdmin && (
+              <Link to="/admin" className="text-foreground hover:text-primary transition-colors flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
             
             {user ? (
               <DropdownMenu>
@@ -137,6 +146,17 @@ const Navbar = () => {
             >
               Contact
             </Link>
+            
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="block text-foreground hover:text-primary transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Shield className="inline h-4 w-4 mr-2" />
+                Admin Panel
+              </Link>
+            )}
             
             {user ? (
               <Button 
