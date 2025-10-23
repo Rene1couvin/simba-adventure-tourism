@@ -1,10 +1,35 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
-import { useState } from "react";
+import { Menu, User, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast.success("Logged out successfully");
+    navigate("/");
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
@@ -36,9 +61,26 @@ const Navbar = () => {
             <Link to="/contact" className="text-foreground hover:text-primary transition-colors">
               Contact
             </Link>
-            <Button asChild variant="default">
-              <Link to="/auth">Login</Link>
-            </Button>
+            
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild variant="default">
+                <Link to="/auth">Login</Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -95,11 +137,26 @@ const Navbar = () => {
             >
               Contact
             </Link>
-            <Button asChild variant="default" className="w-full">
-              <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                Login
-              </Link>
-            </Button>
+            
+            {user ? (
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => {
+                  handleSignOut();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            ) : (
+              <Button asChild variant="default" className="w-full">
+                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  Login
+                </Link>
+              </Button>
+            )}
           </div>
         )}
       </div>
