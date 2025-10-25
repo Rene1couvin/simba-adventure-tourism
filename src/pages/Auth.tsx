@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 const Auth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -85,6 +86,28 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      toast.success("Password reset email sent! Check your inbox.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send reset email");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
       <Card className="w-full max-w-md">
@@ -128,6 +151,17 @@ const Auth = () => {
                   Sign In
                 </Button>
               </form>
+              <div className="mt-4 text-center">
+                <Button 
+                  type="button"
+                  variant="link" 
+                  onClick={handleForgotPassword}
+                  disabled={resetLoading}
+                  className="text-sm"
+                >
+                  {resetLoading ? "Sending..." : "Forgot Password?"}
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="signup">
