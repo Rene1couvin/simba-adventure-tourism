@@ -24,11 +24,11 @@ interface Booking {
   profiles?: {
     full_name: string;
     phone: string | null;
-  };
+  } | null;
   tours?: {
     title: string;
     location: string;
-  };
+  } | null;
 }
 
 export const BookingManagement = () => {
@@ -44,11 +44,11 @@ export const BookingManagement = () => {
       .from('bookings')
       .select(`
         *,
-        profiles!bookings_user_id_fkey (
+        profiles:user_id (
           full_name,
           phone
         ),
-        tours!bookings_tour_id_fkey (
+        tours:tour_id (
           title,
           location
         )
@@ -64,7 +64,7 @@ export const BookingManagement = () => {
         _table_name: 'bookings',
         _accessed_fields: ['total_price', 'special_requests', 'user_id']
       });
-      setBookings(data || []);
+      setBookings((data as any) || []);
     }
   };
 
