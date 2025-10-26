@@ -21,6 +21,14 @@ interface Booking {
   special_requests: string | null;
   tour_id: string;
   user_id: string;
+  profiles?: {
+    full_name: string;
+    phone: string | null;
+  };
+  tours?: {
+    title: string;
+    location: string;
+  };
 }
 
 export const BookingManagement = () => {
@@ -34,12 +42,28 @@ export const BookingManagement = () => {
   const fetchBookings = async () => {
     const { data, error } = await supabase
       .from('bookings')
-      .select('*')
+      .select(`
+        *,
+        profiles!bookings_user_id_fkey (
+          full_name,
+          phone
+        ),
+        tours!bookings_tour_id_fkey (
+          title,
+          location
+        )
+      `)
       .order('booking_date', { ascending: false });
 
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
+      // Log admin access to booking data
+      await supabase.rpc('log_admin_access', {
+        _action: 'VIEW_BOOKINGS',
+        _table_name: 'bookings',
+        _accessed_fields: ['total_price', 'special_requests', 'user_id']
+      });
       setBookings(data || []);
     }
   };
@@ -77,7 +101,7 @@ export const BookingManagement = () => {
           <Card key={booking.id}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-2">
+                <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2">
                     <Badge variant={getStatusColor(booking.status)}>
                       {booking.status}
@@ -86,10 +110,37 @@ export const BookingManagement = () => {
                       {new Date(booking.booking_date).toLocaleDateString()}
                     </span>
                   </div>
+                  
+                  {/* Customer Information */}
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">
+                      Customer: {booking.profiles?.full_name || 'Unknown'}
+                    </p>
+                    {booking.profiles?.phone && (
+                      <p className="text-sm text-muted-foreground">
+                        Phone: {booking.profiles.phone}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Tour Information */}
+                  {booking.tours && (
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold">
+                        Tour: {booking.tours.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Location: {booking.tours.location}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Booking Details */}
                   <p className="text-sm">
                     <strong>{booking.number_of_people}</strong> people • 
                     <strong className="ml-2">${booking.total_price}</strong>
                   </p>
+                  
                   {booking.special_requests && (
                     <p className="text-sm text-muted-foreground">
                       Special requests: {booking.special_requests}
