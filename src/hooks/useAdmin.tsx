@@ -19,12 +19,9 @@ export const useAdmin = () => {
         return;
       }
 
+      // Use secure function to check admin role (prevents enumeration)
       const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
+        .rpc('current_user_has_role', { _role: 'admin' });
 
       if (error) throw error;
       

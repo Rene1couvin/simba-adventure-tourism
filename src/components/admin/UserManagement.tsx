@@ -30,21 +30,29 @@ export const UserManagement = () => {
 
       if (profilesError) throw profilesError;
 
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*');
+      // Log admin access to sensitive profile data
+      if (profiles && profiles.length > 0) {
+        await supabase.rpc('log_admin_access', {
+          _action: 'VIEW_PROFILES',
+          _table_name: 'profiles',
+          _accessed_fields: ['phone', 'full_name']
+        });
+      }
 
-      if (rolesError) throw rolesError;
-
-      const usersWithRoles = profiles?.map(profile => {
-        const userRole = roles?.find(r => r.user_id === profile.id && r.role === 'admin');
-        
-        return {
-          ...profile,
-          email: `user-${profile.id.slice(0, 8)}@email.com`,
-          is_admin: !!userRole
-        };
-      }) || [];
+      // Fetch user roles using secure method
+      const usersWithRoles = await Promise.all(
+        (profiles || []).map(async (profile) => {
+          // Check admin status for each user
+          const { data: isAdmin } = await supabase
+            .rpc('has_role', { _user_id: profile.id, _role: 'admin' });
+          
+          return {
+            ...profile,
+            email: `user-${profile.id.slice(0, 8)}@email.com`,
+            is_admin: !!isAdmin
+          };
+        })
+      );
 
       setUsers(usersWithRoles);
     } catch (error: any) {
@@ -68,12 +76,26 @@ export const UserManagement = () => {
           .eq('role', 'admin');
 
         if (error) throw error;
+
+        // Log role removal
+        await supabase.rpc('log_admin_access', {
+          _action: 'REMOVE_ADMIN_ROLE',
+          _table_name: 'user_roles',
+          _record_id: userId
+        });
       } else {
         const { error } = await supabase
           .from('user_roles')
           .insert({ user_id: userId, role: 'admin' });
 
         if (error) throw error;
+
+        // Log role assignment
+        await supabase.rpc('log_admin_access', {
+          _action: 'GRANT_ADMIN_ROLE',
+          _table_name: 'user_roles',
+          _record_id: userId
+        });
       }
 
       toast({

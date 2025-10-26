@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          accessed_fields: string[] | null
+          action: string
+          admin_user_id: string
+          created_at: string
+          id: string
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          accessed_fields?: string[] | null
+          action: string
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          accessed_fields?: string[] | null
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           booking_date: string
@@ -182,12 +212,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_user_has_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      log_admin_access: {
+        Args: {
+          _accessed_fields?: string[]
+          _action: string
+          _record_id?: string
+          _table_name: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
