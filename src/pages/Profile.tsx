@@ -16,8 +16,12 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState('');
+  const [location, setLocation] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [userId, setUserId] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -48,6 +52,8 @@ export default function Profile() {
       if (profile) {
         setFullName(profile.full_name || '');
         setPhone(profile.phone || '');
+        setGender(profile.gender || '');
+        setLocation(profile.location || '');
         setAvatarUrl(profile.avatar_url || '');
       }
     } catch (error: any) {
@@ -120,6 +126,8 @@ export default function Profile() {
         .update({
           full_name: fullName,
           phone: phone,
+          gender: gender,
+          location: location,
         })
         .eq('id', userId);
 
@@ -128,6 +136,54 @@ export default function Profile() {
       toast({
         title: 'Success',
         description: 'Profile updated successfully!',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'Passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Error',
+        description: 'Password must be at least 6 characters',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      setNewPassword('');
+      setConfirmPassword('');
+      
+      toast({
+        title: 'Success',
+        description: 'Password updated successfully!',
       });
     } catch (error: any) {
       toast({
@@ -222,11 +278,64 @@ export default function Profile() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Input
+                  id="gender"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  placeholder="e.g., Male, Female, Other"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="City, Country"
+                />
+              </div>
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
             </form>
+
+            {/* Password Change Form */}
+            <div className="pt-6 border-t">
+              <h3 className="text-xl font-semibold mb-4">Change Password</h3>
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading || !newPassword}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Password
+                </Button>
+              </form>
+            </div>
           </CardContent>
         </Card>
       </div>
