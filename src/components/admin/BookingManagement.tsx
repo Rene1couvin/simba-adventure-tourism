@@ -44,11 +44,11 @@ export const BookingManagement = () => {
       .from('bookings')
       .select(`
         *,
-        profiles:user_id (
+        profiles!bookings_user_id_fkey (
           full_name,
           phone
         ),
-        tours:tour_id (
+        tours!bookings_tour_id_fkey (
           title,
           location
         )
