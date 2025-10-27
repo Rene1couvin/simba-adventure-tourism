@@ -4,9 +4,10 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Users, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BookingDialog } from "@/components/BookingDialog";
+import { useNavigate } from "react-router-dom";
 
 interface Tour {
   id: string;
@@ -23,6 +24,9 @@ interface Tour {
 const Tours = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTours();
@@ -119,8 +123,19 @@ const Tours = () => {
                       <p className="text-sm text-muted-foreground">From</p>
                       <p className="text-3xl font-bold text-primary">${tour.price}</p>
                     </div>
-                    <Button asChild variant="default">
-                      <Link to="/auth">Book Now</Link>
+                    <Button 
+                      variant="default"
+                      onClick={async () => {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) {
+                          navigate('/auth');
+                        } else {
+                          setSelectedTour(tour);
+                          setBookingDialogOpen(true);
+                        }
+                      }}
+                    >
+                      Book Now
                     </Button>
                   </div>
                 </CardContent>
@@ -131,6 +146,14 @@ const Tours = () => {
       </div>
 
       <Footer />
+      
+      {selectedTour && (
+        <BookingDialog
+          open={bookingDialogOpen}
+          onOpenChange={setBookingDialogOpen}
+          tour={selectedTour}
+        />
+      )}
     </div>
   );
 };

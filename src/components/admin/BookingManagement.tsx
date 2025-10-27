@@ -24,6 +24,10 @@ interface Booking {
   profiles?: {
     full_name: string;
     phone: string | null;
+    id: string;
+  } | null;
+  users?: {
+    email: string;
   } | null;
   tours?: {
     title: string;
@@ -45,6 +49,7 @@ export const BookingManagement = () => {
       .select(`
         *,
         profiles!bookings_user_id_fkey (
+          id,
           full_name,
           phone
         ),
@@ -57,14 +62,33 @@ export const BookingManagement = () => {
 
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
+      return;
+    }
+
+    if (data) {
+      // Fetch email addresses for each booking
+      const { data: { users: usersData } } = await supabase.auth.admin.listUsers();
+      
+      const emailMap = new Map<string, string>();
+      if (usersData) {
+        usersData.forEach((u: any) => {
+          if (u.id && u.email) emailMap.set(u.id, u.email);
+        });
+      }
+
+      const enrichedData = data.map((booking: any) => ({
+        ...booking,
+        users: booking.profiles?.id ? { email: emailMap.get(booking.profiles.id) } : null
+      }));
+
       // Log admin access to booking data
       await supabase.rpc('log_admin_access', {
         _action: 'VIEW_BOOKINGS',
         _table_name: 'bookings',
-        _accessed_fields: ['total_price', 'special_requests', 'user_id']
+        _accessed_fields: ['total_price', 'special_requests', 'user_id', 'email']
       });
-      setBookings((data as any) || []);
+      
+      setBookings(enrichedData as any);
     }
   };
 
@@ -116,6 +140,11 @@ export const BookingManagement = () => {
                     <p className="text-sm font-semibold">
                       Customer: {booking.profiles?.full_name || 'Unknown'}
                     </p>
+                    {booking.users?.email && (
+                      <p className="text-sm text-muted-foreground">
+                        Email: {booking.users.email}
+                      </p>
+                    )}
                     {booking.profiles?.phone && (
                       <p className="text-sm text-muted-foreground">
                         Phone: {booking.profiles.phone}
