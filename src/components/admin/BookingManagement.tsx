@@ -48,12 +48,12 @@ export const BookingManagement = () => {
       .from('bookings')
       .select(`
         *,
-        profiles!bookings_user_id_fkey (
+        profiles (
           id,
           full_name,
           phone
         ),
-        tours!bookings_tour_id_fkey (
+        tours (
           title,
           location
         )
