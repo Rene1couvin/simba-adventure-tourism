@@ -111,7 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Simba Adventure Tours <onboarding@resend.dev>",
+        from: "Simba Adventure Tours <noreply@simba.tour.adventure>",
         to: [email],
         subject: `Booking Confirmed: ${tourTitle}`,
         html: emailHtml,
