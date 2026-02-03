@@ -5,17 +5,19 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface BookingConfirmationRequest {
-  email: string;
-  customerName: string;
+  email?: string;
+  customerName?: string;
   tourTitle: string;
-  tourLocation: string;
+  tourLocation?: string;
   bookingDate: string;
   numberOfPeople: number;
   totalPrice: number;
+  status?: string;
+  bookingId?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -24,6 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const body: BookingConfirmationRequest = await req.json();
     const {
       email,
       customerName,
@@ -32,9 +35,34 @@ const handler = async (req: Request): Promise<Response> => {
       bookingDate,
       numberOfPeople,
       totalPrice,
-    }: BookingConfirmationRequest = await req.json();
+      status,
+    } = body;
 
-    console.log(`Sending booking confirmation to ${email}`);
+    // If no email provided, just log and return success (notification skipped)
+    if (!email) {
+      console.log("No email provided, skipping notification");
+      return new Response(JSON.stringify({ message: "No email to send" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log(`Sending booking ${status || 'confirmation'} to ${email}`);
+
+    const getStatusInfo = (status?: string) => {
+      switch (status) {
+        case 'confirmed':
+          return { title: '🎉 Booking Confirmed!', color: '#10b981', message: 'Your safari adventure has been confirmed.' };
+        case 'cancelled':
+          return { title: '❌ Booking Cancelled', color: '#ef4444', message: 'Your booking has been cancelled.' };
+        case 'completed':
+          return { title: '✅ Trip Completed', color: '#3b82f6', message: 'Thank you for traveling with us!' };
+        default:
+          return { title: '🎉 Booking Confirmed!', color: '#10b981', message: 'Your safari adventure has been confirmed.' };
+      }
+    };
+
+    const statusInfo = getStatusInfo(status);
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -43,7 +71,7 @@ const handler = async (req: Request): Promise<Response> => {
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .header { background: ${statusInfo.color}; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
             .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .detail-row { margin: 15px 0; padding: 10px; background: white; border-radius: 4px; }
             .label { font-weight: bold; color: #6b7280; }
@@ -54,21 +82,23 @@ const handler = async (req: Request): Promise<Response> => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🎉 Booking Confirmed!</h1>
+              <h1>${statusInfo.title}</h1>
             </div>
             <div class="content">
-              <p>Dear ${customerName},</p>
-              <p>Thank you for booking with Simba Adventure Tours! Your safari adventure has been confirmed.</p>
+              <p>Dear ${customerName || 'Valued Customer'},</p>
+              <p>${statusInfo.message}</p>
               
               <div class="detail-row">
                 <span class="label">Tour:</span>
                 <span class="value">${tourTitle}</span>
               </div>
               
+              ${tourLocation ? `
               <div class="detail-row">
                 <span class="label">Location:</span>
                 <span class="value">${tourLocation}</span>
               </div>
+              ` : ''}
               
               <div class="detail-row">
                 <span class="label">Date:</span>
@@ -90,9 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <span class="value">$${totalPrice}</span>
               </div>
               
-              <p style="margin-top: 20px;">We will contact you shortly with further details about your adventure. If you have any questions, please don't hesitate to reach out to us.</p>
-              
-              <p>We look forward to making your African safari an unforgettable experience!</p>
+              <p style="margin-top: 20px;">If you have any questions, please don't hesitate to reach out to us.</p>
               
               <div class="footer">
                 <p><strong>Simba Adventure Tours</strong></p>
@@ -104,6 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
+    // Use Resend's test domain for development
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -111,9 +140,9 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Simba Adventure Tours <noreply@simba.tour.adventure>",
+        from: "Simba Adventure Tours <onboarding@resend.dev>",
         to: [email],
-        subject: `Booking Confirmed: ${tourTitle}`,
+        subject: `${status === 'cancelled' ? 'Booking Cancelled' : status === 'completed' ? 'Trip Completed' : 'Booking Confirmed'}: ${tourTitle}`,
         html: emailHtml,
       }),
     });
