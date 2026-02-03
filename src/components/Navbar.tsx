@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useAdmin } from "@/hooks/useAdmin";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -70,6 +71,8 @@ const Navbar = () => {
                 Admin
               </Link>
             )}
+            
+            <ThemeToggle />
             
             {user ? (
               <DropdownMenu>
