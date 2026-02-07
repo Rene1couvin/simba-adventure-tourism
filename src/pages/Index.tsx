@@ -1,11 +1,47 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MapPin, Calendar, Users, Star } from "lucide-react";
+import { MapPin, Calendar, Users, Star, Hotel, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Tour {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  price: number;
+  image_url: string | null;
+}
+
+interface HotelPreview {
+  id: string;
+  name: string;
+  location: string;
+  star_rating: number;
+  image_url: string | null;
+}
 
 const Index = () => {
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [hotels, setHotels] = useState<HotelPreview[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [toursRes, hotelsRes] = await Promise.all([
+        supabase.from("tours").select("id, title, description, location, price, image_url").eq("available", true).order("created_at", { ascending: false }).limit(3),
+        supabase.from("hotels").select("id, name, location, star_rating, image_url").eq("available", true).order("created_at", { ascending: false }).limit(3),
+      ]);
+      setTours(toursRes.data || []);
+      setHotels(hotelsRes.data || []);
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -27,7 +63,7 @@ const Index = () => {
               <Link to="/tours">Explore Tours</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="text-lg border-accent-foreground text-accent-foreground hover:bg-accent-foreground/10">
-              <Link to="/contact">Book Now</Link>
+              <Link to="/hotels">Book Hotels</Link>
             </Button>
           </div>
         </div>
@@ -69,12 +105,12 @@ const Index = () => {
 
           <Card className="text-center">
             <CardHeader>
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <CardTitle>Flexible Booking</CardTitle>
+              <Hotel className="h-12 w-12 mx-auto mb-4 text-primary" />
+              <CardTitle>Luxury Hotels</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Easy online booking with flexible dates and customizable packages
+                Premium accommodations from cozy lodges to 5-star safari resorts
               </CardDescription>
             </CardContent>
           </Card>
@@ -93,7 +129,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Popular Tours Preview */}
+      {/* Popular Tours Preview - Dynamic */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -103,35 +139,100 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-primary to-secondary" />
-                <CardHeader>
-                  <CardTitle>Serengeti Explorer</CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Serengeti National Park
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    7-day adventure through the heart of Tanzania's wildlife paradise
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-primary">$2,499</span>
-                    <Button asChild variant="secondary">
-                      <Link to="/tours">View Details</Link>
-                    </Button>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          ) : tours.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No tours available yet. Check back soon!</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+              {tours.map((tour) => (
+                <Card key={tour.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="h-48 bg-gradient-to-br from-primary to-secondary relative">
+                    {tour.image_url && (
+                      <img src={tour.image_url} alt={tour.title} className="w-full h-full object-cover" loading="lazy" />
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <CardHeader>
+                    <CardTitle>{tour.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {tour.location}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4 line-clamp-2">{tour.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-primary">${tour.price}</span>
+                      <Button asChild variant="secondary">
+                        <Link to="/tours">View Details</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           <div className="text-center">
             <Button asChild size="lg" variant="default">
               <Link to="/tours">View All Tours</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Hotels Preview - Dynamic */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-foreground mb-4">Featured Hotels</h2>
+            <p className="text-muted-foreground text-lg">
+              Stay in comfort with our handpicked safari lodges and resorts
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          ) : hotels.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">Hotels coming soon!</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+              {hotels.map((hotel) => (
+                <Card key={hotel.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="h-48 bg-gradient-to-br from-secondary to-accent relative">
+                    {hotel.image_url && (
+                      <img src={hotel.image_url} alt={hotel.name} className="w-full h-full object-cover" loading="lazy" />
+                    )}
+                  </div>
+                  <CardHeader>
+                    <CardTitle>{hotel.name}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {hotel.location}
+                      <span className="ml-auto flex items-center gap-1">
+                        {Array.from({ length: hotel.star_rating }).map((_, i) => (
+                          <Star key={i} className="h-3 w-3 fill-primary text-primary" />
+                        ))}
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button asChild variant="secondary" className="w-full">
+                      <Link to="/hotels">View Rooms</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center">
+            <Button asChild size="lg" variant="default">
+              <Link to="/hotels">View All Hotels</Link>
             </Button>
           </div>
         </div>

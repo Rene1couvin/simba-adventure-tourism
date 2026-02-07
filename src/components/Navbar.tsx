@@ -52,6 +52,9 @@ const Navbar = () => {
             <Link to="/tours" className="text-foreground hover:text-primary transition-colors">
               Tours
             </Link>
+            <Link to="/hotels" className="text-foreground hover:text-primary transition-colors">
+              Hotels
+            </Link>
             <Link to="/destinations" className="text-foreground hover:text-primary transition-colors">
               Destinations
             </Link>
@@ -126,6 +129,13 @@ const Navbar = () => {
               onClick={() => setMobileMenuOpen(false)}
             >
               Tours
+            </Link>
+            <Link
+              to="/hotels"
+              className="block text-foreground hover:text-primary transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Hotels
             </Link>
             <Link
               to="/destinations"

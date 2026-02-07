@@ -8,6 +8,8 @@ import { UserManagement } from '@/components/admin/UserManagement';
 import { TourManagement } from '@/components/admin/TourManagement';
 import { CategoryManagement } from '@/components/admin/CategoryManagement';
 import { BookingManagement } from '@/components/admin/BookingManagement';
+import { HotelManagement } from '@/components/admin/HotelManagement';
+import { HotelBookingManagement } from '@/components/admin/HotelBookingManagement';
 import { GalleryManagement } from '@/components/admin/GalleryManagement';
 import { ChatManagement } from '@/components/admin/ChatManagement';
 import { Dashboard } from '@/components/admin/Dashboard';
@@ -32,9 +34,7 @@ const Admin = () => {
     );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
+  if (!isAdmin) return null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -43,48 +43,29 @@ const Admin = () => {
         <h1 className="text-4xl font-bold mb-8">Admin Panel</h1>
         
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 mb-4">
+          <TabsList className="flex flex-wrap gap-1 h-auto mb-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="tours">Tours</TabsTrigger>
+            <TabsTrigger value="hotels">Hotels</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
+            <TabsTrigger value="bookings">Tour Bookings</TabsTrigger>
+            <TabsTrigger value="hotel-bookings">Hotel Bookings</TabsTrigger>
             <TabsTrigger value="gallery">Gallery</TabsTrigger>
             <TabsTrigger value="chat">Chat</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="dashboard">
-            <Dashboard />
-          </TabsContent>
-          
-          <TabsContent value="tours">
-            <TourManagement />
-          </TabsContent>
-          
-          <TabsContent value="categories">
-            <CategoryManagement />
-          </TabsContent>
-          
-          <TabsContent value="bookings">
-            <BookingManagement />
-          </TabsContent>
-          
-          <TabsContent value="gallery">
-            <GalleryManagement />
-          </TabsContent>
-          
-          <TabsContent value="chat">
-            <ChatManagement />
-          </TabsContent>
-          
-          <TabsContent value="users">
-            <UserManagement />
-          </TabsContent>
-          
-          <TabsContent value="settings">
-            <SiteSettings />
-          </TabsContent>
+          <TabsContent value="dashboard"><Dashboard /></TabsContent>
+          <TabsContent value="tours"><TourManagement /></TabsContent>
+          <TabsContent value="hotels"><HotelManagement /></TabsContent>
+          <TabsContent value="categories"><CategoryManagement /></TabsContent>
+          <TabsContent value="bookings"><BookingManagement /></TabsContent>
+          <TabsContent value="hotel-bookings"><HotelBookingManagement /></TabsContent>
+          <TabsContent value="gallery"><GalleryManagement /></TabsContent>
+          <TabsContent value="chat"><ChatManagement /></TabsContent>
+          <TabsContent value="users"><UserManagement /></TabsContent>
+          <TabsContent value="settings"><SiteSettings /></TabsContent>
         </Tabs>
       </main>
       <Footer />
