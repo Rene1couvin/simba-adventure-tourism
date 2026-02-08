@@ -33,7 +33,7 @@ const Contact = () => {
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-foreground mb-4">Get in Touch</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Have questions about our safari tours? We're here to help plan your perfect African adventure
+            Have questions about our tours? We're here to help plan your perfect African adventure
           </p>
         </div>
 
@@ -124,7 +124,7 @@ const Contact = () => {
                   <MapPin className="h-6 w-6 text-primary mt-1" />
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Office Location</h3>
-                    <p className="text-muted-foreground">Simba Adventure Tours</p>
+                    <p className="text-muted-foreground">Simba Adventure & Tourism</p>
                     <p className="text-muted-foreground">KG 551 St, Kigali</p>
                     <p className="text-muted-foreground">Rwanda</p>
                     <a href="https://maps.app.goo.gl/UuBCw4zSotmT7Z2d8" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">View on Map</a>

@@ -56,7 +56,7 @@ const Index = () => {
             <span className="text-secondary">Like Never Before</span>
           </h1>
           <p className="text-xl md:text-2xl text-accent-foreground/90 mb-8 max-w-2xl mx-auto">
-            Discover the untamed beauty of Africa with unforgettable safari adventures
+            Discover the untamed beauty of Africa with unforgettable Simba adventures
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" variant="secondary" className="text-lg">
@@ -86,7 +86,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Explore Africa's most stunning wildlife reserves and national parks
+                Explore Africa's most stunning wildlife reserves and national parks with Simba
               </CardDescription>
             </CardContent>
           </Card>
@@ -110,7 +110,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Premium accommodations from cozy lodges to 5-star safari resorts
+                Premium accommodations from cozy lodges to 5-star resorts
               </CardDescription>
             </CardContent>
           </Card>
@@ -133,7 +133,7 @@ const Index = () => {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-foreground mb-4">Popular Safari Tours</h2>
+            <h2 className="text-4xl font-bold text-foreground mb-4">Popular Simba Tours</h2>
             <p className="text-muted-foreground text-lg">
               Hand-picked adventures for the ultimate wildlife experience
             </p>
@@ -189,7 +189,7 @@ const Index = () => {
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-foreground mb-4">Featured Hotels</h2>
             <p className="text-muted-foreground text-lg">
-              Stay in comfort with our handpicked safari lodges and resorts
+              Stay in comfort with our handpicked lodges and resorts
             </p>
           </div>
 

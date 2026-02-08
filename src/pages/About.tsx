@@ -22,13 +22,13 @@ const About = () => {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl font-bold text-foreground mb-6 text-center">Our Story</h2>
           <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-            Founded in 2010, Simba Adventure & Tourism has been at the forefront of providing authentic African safari experiences. 
+            Founded in 2010, Simba Adventure & Tourism has been at the forefront of providing authentic African adventure experiences. 
             Our journey began with a simple vision: to share the breathtaking beauty and incredible wildlife of Africa with travelers 
             from around the world.
           </p>
           <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
             Over the years, we've grown from a small team of passionate wildlife enthusiasts to one of East Africa's most trusted 
-            safari operators. Our commitment to sustainable tourism and wildlife conservation remains at the heart of everything we do.
+            tour operators. Our commitment to sustainable tourism and wildlife conservation remains at the heart of everything we do.
           </p>
         </div>
       </section>
@@ -42,7 +42,7 @@ const About = () => {
                 <Heart className="h-16 w-16 mx-auto mb-4 text-primary" />
                 <h3 className="text-2xl font-bold text-foreground mb-4">Our Mission</h3>
                 <p className="text-muted-foreground">
-                  To provide unforgettable safari experiences while promoting wildlife conservation and supporting local communities.
+                  To provide unforgettable adventure experiences while promoting wildlife conservation and supporting local communities.
                 </p>
               </CardContent>
             </Card>
@@ -52,7 +52,7 @@ const About = () => {
                 <Eye className="h-16 w-16 mx-auto mb-4 text-primary" />
                 <h3 className="text-2xl font-bold text-foreground mb-4">Our Vision</h3>
                 <p className="text-muted-foreground">
-                  To be Africa's leading sustainable safari operator, setting the standard for eco-tourism and wildlife preservation.
+                  To be Africa's leading sustainable tour operator, setting the standard for eco-tourism and wildlife preservation.
                 </p>
               </CardContent>
             </Card>
@@ -75,13 +75,13 @@ const About = () => {
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-foreground mb-4">Meet Our Team</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Our experienced guides and staff are passionate about wildlife and dedicated to making your safari extraordinary
+            Our experienced guides and staff are passionate about wildlife and dedicated to making your adventure extraordinary
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
           {[
-            { name: "BYUKUSENGE Eric", role: "Senior Safari Guide", experience: "15+ years experience" },
+            { name: "BYUKUSENGE Eric", role: "Senior Tour Guide", experience: "15+ years experience" },
             { name: "NSHIMIYIMANA Fabrice", role: "Tour Coordinator", experience: "10+ years experience" },
             { name: "NIYONSENGA EEAN Claude", role: "Wildlife Expert", experience: "12+ years experience" },
             { name: "NISINGIZWE Jean Aime", role: "Operations Manager", experience: "8+ years experience" },

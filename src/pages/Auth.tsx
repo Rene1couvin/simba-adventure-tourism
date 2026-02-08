@@ -20,13 +20,20 @@ const Auth = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        navigate("/");
+        // Redirect to OTP verification after login
+        navigate("/verify-otp");
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        // Check if already OTP verified
+        const verified = sessionStorage.getItem("otp_verified");
+        if (verified === "true") {
+          navigate("/");
+        } else {
+          navigate("/verify-otp");
+        }
       }
     });
 
@@ -42,7 +49,7 @@ const Auth = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/verify-otp`,
           data: {
             full_name: fullName,
           },
@@ -74,7 +81,9 @@ const Auth = () => {
 
       if (error) throw error;
 
-      toast.success("Logged in successfully!");
+      // Clear any previous OTP verification
+      sessionStorage.removeItem("otp_verified");
+      toast.success("Logged in! Sending verification code...");
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
@@ -108,7 +117,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-primary">Simba Adventure Tours</CardTitle>
+          <CardTitle className="text-3xl font-bold text-primary">Simba Adventure</CardTitle>
           <CardDescription>Sign in to book your next adventure</CardDescription>
         </CardHeader>
         <CardContent>
@@ -148,9 +157,9 @@ const Auth = () => {
                 </Button>
               </form>
               <div className="mt-4 text-center">
-                <Button 
+                <Button
                   type="button"
-                  variant="link" 
+                  variant="link"
                   onClick={handleForgotPassword}
                   disabled={resetLoading}
                   className="text-sm"
