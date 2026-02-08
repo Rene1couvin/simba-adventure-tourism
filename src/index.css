@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Safari-themed colors for Simba Adventure & Tourism */
+    /* Simba Adventure & Tourism theme colors */
     --background: 60 56% 91%; /* Beige */
     --foreground: 180 25% 25%; /* Dark Green */
 
@@ -18,7 +18,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 180 25% 25%;
 
-    --primary: 25 76% 31%; /* Safari Brown */
+    --primary: 25 76% 31%; /* Simba Brown */
     --primary-foreground: 60 56% 91%;
 
     --secondary: 32 38% 59%; /* Gold */

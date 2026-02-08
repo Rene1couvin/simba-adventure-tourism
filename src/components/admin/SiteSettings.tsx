@@ -108,12 +108,25 @@ export const SiteSettings = () => {
   const saveSetting = async (key: string, value: any) => {
     setSaving(true);
     try {
-      const { error } = await supabase
+      // Try update first, then insert if not found
+      const { data: existing } = await supabase
         .from('site_settings')
-        .update({ setting_value: value, updated_at: new Date().toISOString() })
-        .eq('setting_key', key);
+        .select('id')
+        .eq('setting_key', key)
+        .single();
 
-      if (error) throw error;
+      if (existing) {
+        const { error } = await supabase
+          .from('site_settings')
+          .update({ setting_value: value, updated_at: new Date().toISOString() })
+          .eq('setting_key', key);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('site_settings')
+          .insert({ setting_key: key, setting_value: value });
+        if (error) throw error;
+      }
       toast({ title: 'Success', description: 'Setting saved' });
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });

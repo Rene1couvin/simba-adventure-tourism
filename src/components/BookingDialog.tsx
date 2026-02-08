@@ -126,7 +126,7 @@ export const BookingDialog = ({ open, onOpenChange, tour }: BookingDialogProps) 
         <DialogHeader>
           <DialogTitle>Book {tour.title}</DialogTitle>
           <DialogDescription>
-            Complete the form below to book your safari adventure
+            Complete the form below to book your adventure
           </DialogDescription>
         </DialogHeader>
 

@@ -68,9 +68,9 @@ const Tours = () => {
       
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-foreground mb-4">Safari Tours & Packages</h1>
+          <h1 className="text-5xl font-bold text-foreground mb-4">Simba Tours & Packages</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Choose from our carefully curated collection of Rwandan safari adventures
+            Choose from our carefully curated collection of Rwandan adventure experiences
           </p>
         </div>
 

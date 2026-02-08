@@ -12,6 +12,7 @@ import Gallery from "./pages/Gallery";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
+import VerifyOTP from "./pages/VerifyOTP";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
