@@ -12,7 +12,7 @@ const VerifyOTP = () => {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [canResend, setCanResend] = useState(false);
   const [userEmail, setUserEmail] = useState("");
 
@@ -59,7 +59,7 @@ const VerifyOTP = () => {
 
       if (error) throw error;
       
-      setTimeLeft(180);
+      setTimeLeft(300);
       setCanResend(false);
       toast.success("Verification code sent to your email!");
     } catch (error: any) {
