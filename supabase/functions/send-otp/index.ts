@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+import nodemailer from "npm:nodemailer@6.9.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,15 +30,42 @@ function createSupabaseClients() {
   return { serviceClient, anonClient };
 }
 
+function createSmtpTransport() {
+  const host = Deno.env.get("SMTP_HOST")!;
+  const port = parseInt(Deno.env.get("SMTP_PORT") || "465");
+  const user = Deno.env.get("SMTP_USER")!;
+  const pass = Deno.env.get("SMTP_PASS")!;
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false },
+  });
+}
+
+async function sendEmail(to: string, subject: string, html: string) {
+  const transporter = createSmtpTransport();
+  const from = Deno.env.get("SMTP_FROM") || Deno.env.get("SMTP_USER")!;
+
+  try {
+    const info = await transporter.sendMail({ from, to, subject, html });
+    console.log("Email sent successfully:", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("SMTP send error:", error);
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+}
+
 async function handleSend(supabase: ReturnType<typeof createClient>, user: { id: string; email?: string }) {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const otpHash = await hashOTP(otp);
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-  // Delete old OTPs for this user
   await supabase.from("otp_codes").delete().eq("user_id", user.id);
 
-  // Store hashed OTP
   const { error: insertError } = await supabase.from("otp_codes").insert({
     user_id: user.id,
     code_hash: otpHash,
@@ -53,7 +79,6 @@ async function handleSend(supabase: ReturnType<typeof createClient>, user: { id:
     throw new Error("Failed to create OTP");
   }
 
-  // Send OTP via Resend
   console.log(`Sending OTP to ${user.email}`);
 
   const emailHtml = `
@@ -91,25 +116,7 @@ async function handleSend(supabase: ReturnType<typeof createClient>, user: { id:
     </html>
   `;
 
-  const resendResponse = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-    },
-    body: JSON.stringify({
-      from: "Simba Adventure <onboarding@resend.dev>",
-      to: [user.email],
-      subject: "Your Verification Code - Simba Adventure",
-      html: emailHtml,
-    }),
-  });
-
-  const resendData = await resendResponse.json();
-  if (!resendResponse.ok) {
-    console.error("Resend error:", resendData);
-    throw new Error(resendData.message || "Failed to send email");
-  }
+  await sendEmail(user.email!, "Your Verification Code - Simba Adventure", emailHtml);
 
   console.log("OTP sent successfully");
   return new Response(JSON.stringify({ success: true }), {
@@ -119,7 +126,6 @@ async function handleSend(supabase: ReturnType<typeof createClient>, user: { id:
 }
 
 async function handleVerify(supabase: ReturnType<typeof createClient>, user: { id: string }, code: string) {
-  // Get the latest OTP for this user
   const { data: otpData, error: otpError } = await supabase
     .from("otp_codes")
     .select("*")
@@ -136,7 +142,6 @@ async function handleVerify(supabase: ReturnType<typeof createClient>, user: { i
     );
   }
 
-  // Check attempts (enforced at DB level too via trigger)
   if (otpData.attempts >= 5) {
     await supabase.from("otp_codes").delete().eq("id", otpData.id);
     return new Response(
@@ -145,7 +150,6 @@ async function handleVerify(supabase: ReturnType<typeof createClient>, user: { i
     );
   }
 
-  // Check expiry
   if (new Date(otpData.expires_at) < new Date()) {
     await supabase.from("otp_codes").delete().eq("id", otpData.id);
     return new Response(
@@ -154,7 +158,6 @@ async function handleVerify(supabase: ReturnType<typeof createClient>, user: { i
     );
   }
 
-  // Compare hashed code
   const inputHash = await hashOTP(code);
   if (otpData.code_hash !== inputHash) {
     await supabase
@@ -168,10 +171,7 @@ async function handleVerify(supabase: ReturnType<typeof createClient>, user: { i
     );
   }
 
-  // Verified - delete the OTP
   await supabase.from("otp_codes").delete().eq("id", otpData.id);
-
-  // Clean up any other expired OTPs
   await supabase.rpc("cleanup_expired_otps");
 
   return new Response(JSON.stringify({ success: true }), {

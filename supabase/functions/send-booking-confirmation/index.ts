@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+import nodemailer from "npm:nodemailer@6.9.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +17,21 @@ interface BookingConfirmationRequest {
   totalPrice: number;
   status?: string;
   bookingId?: string;
+}
+
+function createSmtpTransport() {
+  const host = Deno.env.get("SMTP_HOST")!;
+  const port = parseInt(Deno.env.get("SMTP_PORT") || "465");
+  const user = Deno.env.get("SMTP_USER")!;
+  const pass = Deno.env.get("SMTP_PASS")!;
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false },
+  });
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -38,7 +52,6 @@ const handler = async (req: Request): Promise<Response> => {
       status,
     } = body;
 
-    // If no email provided, just log and return success (notification skipped)
     if (!email) {
       console.log("No email provided, skipping notification");
       return new Response(JSON.stringify({ message: "No email to send" }), {
@@ -132,45 +145,22 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Use Resend's test domain for development
-    const resendResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: "Simba Adventure Tours <onboarding@resend.dev>",
-        to: [email],
-        subject: `${status === 'cancelled' ? 'Booking Cancelled' : status === 'completed' ? 'Trip Completed' : 'Booking Confirmed'}: ${tourTitle}`,
-        html: emailHtml,
-      }),
-    });
+    const transporter = createSmtpTransport();
+    const from = Deno.env.get("SMTP_FROM") || Deno.env.get("SMTP_USER")!;
+    const subject = `${status === 'cancelled' ? 'Booking Cancelled' : status === 'completed' ? 'Trip Completed' : 'Booking Confirmed'}: ${tourTitle}`;
 
-    const responseData = await resendResponse.json();
+    const info = await transporter.sendMail({ from, to: email, subject, html: emailHtml });
+    console.log("Email sent successfully:", info.messageId);
 
-    if (!resendResponse.ok) {
-      console.error("Resend API error:", responseData);
-      throw new Error(responseData.message || "Failed to send email");
-    }
-
-    console.log("Email sent successfully:", responseData);
-
-    return new Response(JSON.stringify(responseData), {
+    return new Response(JSON.stringify({ success: true, messageId: info.messageId }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     console.error("Error in send-booking-confirmation function:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };
