@@ -31,15 +31,15 @@ function createSupabaseClients() {
 }
 
 function createSmtpTransport() {
-  const host = Deno.env.get("SMTP_HOST")!;
-  const port = parseInt(Deno.env.get("SMTP_PORT") || "465");
+  const host = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
+  const port = parseInt(Deno.env.get("SMTP_PORT") || "587");
   const user = Deno.env.get("SMTP_USER")!;
   const pass = Deno.env.get("SMTP_PASS")!;
 
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
+    secure: false,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
   });
