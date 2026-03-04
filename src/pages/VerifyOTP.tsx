@@ -14,6 +14,7 @@ const VerifyOTP = () => {
   const [sending, setSending] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [canResend, setCanResend] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
@@ -42,13 +43,15 @@ const VerifyOTP = () => {
       setCanResend(true);
       return;
     }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
+    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const sendOTP = useCallback(async () => {
     setSending(true);
@@ -56,11 +59,10 @@ const VerifyOTP = () => {
       const { data, error } = await supabase.functions.invoke("send-otp", {
         body: { action: "send" },
       });
-
       if (error) throw error;
-      
       setTimeLeft(300);
       setCanResend(false);
+      setResendCooldown(60);
       toast.success("Verification code sent to your email!");
     } catch (error: any) {
       console.error("Send OTP error:", error);
@@ -162,7 +164,7 @@ const VerifyOTP = () => {
                 type="button"
                 variant="ghost"
                 onClick={sendOTP}
-                disabled={!canResend || sending}
+                disabled={resendCooldown > 0 || sending}
                 className="text-sm"
               >
                 {sending ? (
@@ -170,10 +172,15 @@ const VerifyOTP = () => {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Sending...
                   </>
+                ) : resendCooldown > 0 ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Resend in {resendCooldown}s
+                  </>
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    {canResend ? "Resend Code" : `Resend in ${formatTime(timeLeft)}`}
+                    Resend Code
                   </>
                 )}
               </Button>
