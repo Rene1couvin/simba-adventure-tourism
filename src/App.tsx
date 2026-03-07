@@ -12,6 +12,7 @@ import Gallery from "./pages/Gallery";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
+import VerifyOTP from "./pages/VerifyOTP";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
