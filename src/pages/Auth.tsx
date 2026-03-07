@@ -86,7 +86,15 @@ const Auth = () => {
 
       if (error) throw error;
 
-      toast.success("Logged in successfully!");
+      // Send OTP after successful login
+      sessionStorage.removeItem("otp_verified");
+      toast.success("Logged in! Sending verification code...");
+      
+      // Trigger OTP send
+      const otpResponse = await supabase.functions.invoke("send-otp");
+      if (otpResponse.data?.error) {
+        console.warn("OTP send warning:", otpResponse.data.error);
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
