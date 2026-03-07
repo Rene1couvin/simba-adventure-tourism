@@ -17,22 +17,28 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
-  const redirectByRole = async () => {
-    const { data: isAdmin } = await supabase.rpc('current_user_has_role', { _role: 'admin' });
-    if (isAdmin) navigate('/admin');
-    else navigate('/');
-  };
-
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        redirectByRole();
+        // After auth, redirect to OTP verification
+        navigate("/verify-otp");
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        redirectByRole();
+        const verified = sessionStorage.getItem("otp_verified");
+        if (verified === "true") {
+          // Already verified, redirect by role
+          const checkRole = async () => {
+            const { data: isAdmin } = await supabase.rpc('current_user_has_role', { _role: 'admin' });
+            if (isAdmin) navigate('/admin');
+            else navigate('/');
+          };
+          checkRole();
+        } else {
+          navigate("/verify-otp");
+        }
       }
     });
 
@@ -80,7 +86,15 @@ const Auth = () => {
 
       if (error) throw error;
 
-      toast.success("Logged in successfully!");
+      // Send OTP after successful login
+      sessionStorage.removeItem("otp_verified");
+      toast.success("Logged in! Sending verification code...");
+      
+      // Trigger OTP send
+      const otpResponse = await supabase.functions.invoke("send-otp");
+      if (otpResponse.data?.error) {
+        console.warn("OTP send warning:", otpResponse.data.error);
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
