@@ -13,11 +13,15 @@ function createSmtpTransport() {
   const port = parseInt(Deno.env.get("SMTP_PORT") || "587");
   const user = Deno.env.get("SMTP_USER")!;
   const pass = Deno.env.get("SMTP_PASS")!;
+  const secureEnv = Deno.env.get("SMTP_SECURE") || "auto";
+  const secure = secureEnv === "auto" ? port === 465 : secureEnv === "true";
+
+  console.log(`SMTP config: host=${host}, port=${port}, secure=${secure}, user=${user}`);
 
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
+    secure,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
   });
