@@ -5,13 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Loader2, User } from 'lucide-react';
+import { Send, Loader2, User, Search, ArrowLeft, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatUser {
   id: string;
   full_name: string;
   unread_count: number;
+  last_message: string;
+  last_message_time: string;
 }
 
 interface ChatMessage {
@@ -25,12 +28,15 @@ interface ChatMessage {
 
 export const ChatManagement = () => {
   const [users, setUsers] = useState<ChatUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<ChatUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [adminId, setAdminId] = useState<string | null>(null);
+  const [userSearch, setUserSearch] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -42,16 +48,11 @@ export const ChatManagement = () => {
     if (!adminId) return;
     fetchChatUsers();
 
-    // Subscribe to new messages
     const channel = supabase
       .channel('admin-chat')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-        },
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload) => {
           const newMsg = payload.new as ChatMessage;
           if (newMsg.receiver_id === adminId || newMsg.sender_id === adminId) {
@@ -68,51 +69,58 @@ export const ChatManagement = () => {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [adminId, selectedUser]);
+
+  useEffect(() => {
+    const filtered = users.filter(u =>
+      u.full_name.toLowerCase().includes(userSearch.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }, [users, userSearch]);
 
   const fetchChatUsers = async () => {
     if (!adminId) return;
 
     try {
-      // Get all unique users who have chatted with admin
       const { data: chatData, error: chatError } = await supabase
         .from('chat_messages')
-        .select('sender_id, receiver_id, is_read')
-        .or(`sender_id.eq.${adminId},receiver_id.eq.${adminId}`);
+        .select('sender_id, receiver_id, message, is_read, created_at')
+        .or(`sender_id.eq.${adminId},receiver_id.eq.${adminId}`)
+        .order('created_at', { ascending: false });
 
       if (chatError) throw chatError;
 
-      // Get unique user IDs (excluding admin)
-      const userIds = new Set<string>();
-      const unreadCounts: Record<string, number> = {};
+      const userMap: Record<string, { unread: number; lastMsg: string; lastTime: string }> = {};
 
       chatData?.forEach(msg => {
         const otherId = msg.sender_id === adminId ? msg.receiver_id : msg.sender_id;
-        userIds.add(otherId);
-        
+        if (!userMap[otherId]) {
+          userMap[otherId] = { unread: 0, lastMsg: msg.message, lastTime: msg.created_at };
+        }
         if (msg.sender_id !== adminId && !msg.is_read) {
-          unreadCounts[otherId] = (unreadCounts[otherId] || 0) + 1;
+          userMap[otherId].unread++;
         }
       });
 
-      // Fetch user profiles
-      const { data: profiles, error: profilesError } = await supabase
+      const userIds = Object.keys(userMap);
+      if (userIds.length === 0) { setUsers([]); setLoading(false); return; }
+
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .in('id', Array.from(userIds));
+        .in('id', userIds);
 
-      if (profilesError) throw profilesError;
-
-      const chatUsers = profiles?.map(p => ({
+      const chatUsers: ChatUser[] = (profiles || []).map(p => ({
         id: p.id,
         full_name: p.full_name,
-        unread_count: unreadCounts[p.id] || 0,
-      })) || [];
+        unread_count: userMap[p.id]?.unread || 0,
+        last_message: userMap[p.id]?.lastMsg || '',
+        last_message_time: userMap[p.id]?.lastTime || '',
+      }));
 
-      setUsers(chatUsers.sort((a, b) => b.unread_count - a.unread_count));
+      chatUsers.sort((a, b) => new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime());
+      setUsers(chatUsers);
     } catch (error) {
       console.error('Error fetching chat users:', error);
     } finally {
@@ -123,29 +131,24 @@ export const ChatManagement = () => {
   const selectUser = async (user: ChatUser) => {
     setSelectedUser(user);
     await fetchMessages(user.id);
-    
-    // Mark messages as read
     if (adminId) {
       await supabase
         .from('chat_messages')
         .update({ is_read: true })
         .eq('sender_id', user.id)
         .eq('receiver_id', adminId);
-      
       fetchChatUsers();
     }
   };
 
   const fetchMessages = async (userId: string) => {
     if (!adminId) return;
-
     try {
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
         .or(`and(sender_id.eq.${userId},receiver_id.eq.${adminId}),and(sender_id.eq.${adminId},receiver_id.eq.${userId})`)
         .order('created_at', { ascending: true });
-
       if (error) throw error;
       setMessages(data || []);
       scrollToBottom();
@@ -163,7 +166,6 @@ export const ChatManagement = () => {
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !adminId || !selectedUser) return;
-
     try {
       const { error } = await supabase
         .from('chat_messages')
@@ -172,7 +174,6 @@ export const ChatManagement = () => {
           receiver_id: selectedUser.id,
           message: newMessage.trim(),
         });
-
       if (error) throw error;
       setNewMessage('');
     } catch (error) {
@@ -180,97 +181,167 @@ export const ChatManagement = () => {
     }
   };
 
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const oneDay = 86400000;
+
+    if (diff < oneDay) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    if (diff < oneDay * 7) {
+      return date.toLocaleDateString([], { weekday: 'short' });
+    }
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
   if (loading) {
     return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
+  const showUserList = !isMobile || !selectedUser;
+  const showChat = !isMobile || !!selectedUser;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[600px]">
-      {/* Users list */}
-      <Card className="md:col-span-1">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Conversations</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[500px]">
-            {users.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No conversations yet</p>
+    <div className="flex h-[650px] rounded-xl border bg-card overflow-hidden">
+      {/* User list */}
+      {showUserList && (
+        <div className={cn("flex flex-col border-r bg-card", isMobile ? "w-full" : "w-80 min-w-[280px]")}>
+          <div className="p-4 border-b space-y-3">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              Conversations
+            </h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+          </div>
+          <ScrollArea className="flex-1">
+            {filteredUsers.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">No conversations</p>
             ) : (
-              <div className="space-y-1 p-2">
-                {users.map((user) => (
+              <div className="py-1">
+                {filteredUsers.map((user) => (
                   <button
                     key={user.id}
                     onClick={() => selectUser(user)}
                     className={cn(
-                      "w-full p-3 rounded-lg text-left flex items-center justify-between hover:bg-muted transition-colors",
+                      "w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-muted/50 transition-colors border-b border-border/50",
                       selectedUser?.id === user.id && "bg-muted"
                     )}
                   >
-                    <div className="flex items-center gap-2">
-                      <User className="h-8 w-8 p-1.5 bg-primary/10 rounded-full" />
-                      <span className="font-medium">{user.full_name}</span>
+                    <div className="relative">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
                     </div>
-                    {user.unread_count > 0 && (
-                      <Badge variant="destructive">{user.unread_count}</Badge>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm truncate">{user.full_name}</span>
+                        <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
+                          {user.last_message_time && formatTime(user.last_message_time)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <p className="text-xs text-muted-foreground truncate pr-2">{user.last_message}</p>
+                        {user.unread_count > 0 && (
+                          <Badge className="h-5 min-w-[20px] flex items-center justify-center text-xs rounded-full flex-shrink-0">
+                            {user.unread_count}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
             )}
           </ScrollArea>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {/* Chat area */}
-      <Card className="md:col-span-2 flex flex-col">
-        <CardHeader className="pb-3 border-b">
-          <CardTitle className="text-lg">
-            {selectedUser ? `Chat with ${selectedUser.full_name}` : 'Select a conversation'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col p-0">
+      {showChat && (
+        <div className="flex-1 flex flex-col min-w-0">
           {selectedUser ? (
             <>
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-3">
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        "max-w-[80%] p-3 rounded-lg",
-                        msg.sender_id === adminId
-                          ? "ml-auto bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      )}
-                    >
-                      <p className="text-sm">{msg.message}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  ))}
+              <div className="px-4 py-3 border-b flex items-center gap-3 bg-card">
+                {isMobile && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedUser(null)}>
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">{selectedUser.full_name}</h3>
+                </div>
+              </div>
+
+              <ScrollArea className="flex-1 px-4">
+                <div className="py-4 space-y-3">
+                  {messages.length === 0 && (
+                    <p className="text-center text-muted-foreground text-sm py-8">No messages yet</p>
+                  )}
+                  {messages.map((msg) => {
+                    const isAdmin = msg.sender_id === adminId;
+                    return (
+                      <div key={msg.id} className={cn("flex", isAdmin ? "justify-end" : "justify-start")}>
+                        <div
+                          className={cn(
+                            "max-w-[75%] px-4 py-2.5 rounded-2xl",
+                            isAdmin
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-muted rounded-bl-md"
+                          )}
+                        >
+                          <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
+                          <div className={cn(
+                            "flex items-center gap-1 mt-1",
+                            isAdmin ? "justify-end" : "justify-start"
+                          )}>
+                            <span className="text-[10px] opacity-70">
+                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {isAdmin && msg.is_read && (
+                              <span className="text-[10px] opacity-70">✓✓</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                   <div ref={scrollRef} />
                 </div>
               </ScrollArea>
-              <form onSubmit={sendMessage} className="p-4 border-t flex gap-2">
+
+              <form onSubmit={sendMessage} className="p-3 border-t flex gap-2 bg-card">
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1"
+                  className="flex-1 rounded-full"
                 />
-                <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                <Button type="submit" size="icon" className="rounded-full h-10 w-10" disabled={!newMessage.trim()}>
                   <Send className="h-4 w-4" />
                 </Button>
               </form>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              Select a user to start chatting
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+              <MessageCircle className="h-12 w-12 opacity-30" />
+              <p className="text-sm">Select a conversation to start chatting</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 };
