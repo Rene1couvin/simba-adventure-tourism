@@ -6,8 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Heart, Users, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Heart, Users, Loader2, Search, Calendar } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 interface GalleryImage {
   id: string;
@@ -18,17 +20,22 @@ interface GalleryImage {
   created_at: string;
 }
 
-interface ImageLike {
+interface LikeDetail {
   user_id: string;
-  profiles: { full_name: string } | null;
+  full_name: string;
+  created_at: string;
 }
 
 export const GalleryManagement = () => {
   const [images, setImages] = useState<GalleryImage[]>([]);
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [likesDialogOpen, setLikesDialogOpen] = useState(false);
-  const [selectedImageLikes, setSelectedImageLikes] = useState<{ image_id: string; users: string[] }>({ image_id: '', users: [] });
+  const [selectedImageTitle, setSelectedImageTitle] = useState('');
+  const [selectedImageLikes, setSelectedImageLikes] = useState<LikeDetail[]>([]);
+  const [likesSearch, setLikesSearch] = useState('');
+  const [imageSearch, setImageSearch] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -51,6 +58,17 @@ export const GalleryManagement = () => {
 
       if (error) throw error;
       setImages(data || []);
+
+      // Fetch all like counts
+      const { data: likesData } = await supabase
+        .from('image_likes')
+        .select('image_id');
+
+      const counts: Record<string, number> = {};
+      likesData?.forEach(l => {
+        counts[l.image_id] = (counts[l.image_id] || 0) + 1;
+      });
+      setLikeCounts(counts);
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
@@ -126,22 +144,38 @@ export const GalleryManagement = () => {
     }
   };
 
-  const viewLikes = async (imageId: string) => {
+  const viewLikes = async (imageId: string, imageTitle: string) => {
     try {
       const { data, error } = await supabase
         .from('image_likes')
-        .select('user_id, profiles(full_name)')
-        .eq('image_id', imageId);
+        .select('user_id, created_at, profiles(full_name)')
+        .eq('image_id', imageId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const users = data?.map((like: any) => like.profiles?.full_name || 'Unknown User') || [];
-      setSelectedImageLikes({ image_id: imageId, users });
+      const likes: LikeDetail[] = data?.map((like: any) => ({
+        user_id: like.user_id,
+        full_name: like.profiles?.full_name || 'Unknown User',
+        created_at: like.created_at,
+      })) || [];
+
+      setSelectedImageTitle(imageTitle);
+      setSelectedImageLikes(likes);
+      setLikesSearch('');
       setLikesDialogOpen(true);
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   };
+
+  const filteredLikes = selectedImageLikes.filter(l =>
+    l.full_name.toLowerCase().includes(likesSearch.toLowerCase())
+  );
+
+  const filteredImages = images.filter(img =>
+    img.title.toLowerCase().includes(imageSearch.toLowerCase())
+  );
 
   if (loading) {
     return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -149,64 +183,81 @@ export const GalleryManagement = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h2 className="text-2xl font-bold">Gallery Management</h2>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Add Image</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Gallery Image</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>Title</Label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label>Description</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Image</Label>
-                <Input type="file" accept="image/*" onChange={handleFileUpload} />
-                {uploading && <p className="text-sm text-muted-foreground mt-1">Uploading...</p>}
-                {formData.image_url && (
-                  <img src={formData.image_url} alt="Preview" className="mt-2 h-32 object-cover rounded" />
-                )}
-              </div>
-              <Button type="submit" disabled={!formData.image_url || !formData.title}>
-                Add to Gallery
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search images..."
+              value={imageSearch}
+              onChange={(e) => setImageSearch(e.target.value)}
+              className="pl-9 w-full sm:w-64"
+            />
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" /> Add Image</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Gallery Image</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label>Title</Label>
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Image</Label>
+                  <Input type="file" accept="image/*" onChange={handleFileUpload} />
+                  {uploading && <p className="text-sm text-muted-foreground mt-1">Uploading...</p>}
+                  {formData.image_url && (
+                    <img src={formData.image_url} alt="Preview" className="mt-2 h-32 object-cover rounded" />
+                  )}
+                </div>
+                <Button type="submit" disabled={!formData.image_url || !formData.title}>
+                  Add to Gallery
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {images.map((image) => (
-          <Card key={image.id}>
+        {filteredImages.map((image) => (
+          <Card key={image.id} className="overflow-hidden">
             <div className="h-48 overflow-hidden">
               <img src={image.image_url} alt={image.title} className="w-full h-full object-cover" />
             </div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">{image.title}</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{image.title}</CardTitle>
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Heart className="h-3 w-3" />
+                  {likeCounts[image.id] || 0}
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               {image.description && (
                 <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{image.description}</p>
               )}
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => viewLikes(image.id)}>
-                  <Heart className="mr-1 h-4 w-4" /> View Likes
+                <Button variant="outline" size="sm" onClick={() => viewLikes(image.id, image.title)}>
+                  <Users className="mr-1 h-4 w-4" /> View Likes
                 </Button>
                 <Button variant="destructive" size="sm" onClick={() => handleDelete(image.id)}>
                   <Trash2 className="h-4 w-4" />
@@ -217,21 +268,62 @@ export const GalleryManagement = () => {
         ))}
       </div>
 
+      {/* Likes Detail Dialog */}
       <Dialog open={likesDialogOpen} onOpenChange={setLikesDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" /> Users Who Liked This Image
+              <Heart className="h-5 w-5 text-destructive" /> {selectedImageTitle}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            {selectedImageLikes.users.length === 0 ? (
-              <p className="text-muted-foreground">No likes yet</p>
-            ) : (
-              selectedImageLikes.users.map((user, idx) => (
-                <div key={idx} className="p-2 bg-muted rounded">{user}</div>
-              ))
-            )}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Total Likes: <span className="font-semibold text-foreground">{selectedImageLikes.length}</span>
+              </p>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by username..."
+                value={likesSearch}
+                onChange={(e) => setLikesSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <ScrollArea className="h-[300px]">
+              {filteredLikes.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  {selectedImageLikes.length === 0 ? 'No likes yet' : 'No matching users'}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {filteredLikes.map((like, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Users className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="font-medium text-sm">{like.full_name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(like.created_at).toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                        {' '}
+                        {new Date(like.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
           </div>
         </DialogContent>
       </Dialog>
