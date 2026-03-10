@@ -136,7 +136,7 @@ export const HotelManagement = () => {
   };
 
   const deleteHotelImage = async (imageId: string) => {
-    const { error } = await supabase.from('hotel_images').delete().eq('id', imageId);
+    const { error } = await (supabase as any).from('hotel_images').delete().eq('id', imageId);
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
     else {
       toast({ title: 'Deleted' });
