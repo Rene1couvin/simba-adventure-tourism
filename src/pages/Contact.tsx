@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -128,6 +128,26 @@ const Contact = () => {
                     <p className="text-muted-foreground">KG 551 St, Kigali</p>
                     <p className="text-muted-foreground">Rwanda</p>
                     <a href="https://maps.app.goo.gl/UuBCw4zSotmT7Z2d8" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">View on Map</a>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-start space-x-4">
+                  <MessageCircle className="h-6 w-6 text-primary mt-1" />
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">WhatsApp</h3>
+                    <a
+                      href="https://wa.me/250788564396"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      +250 788 564 396
+                    </a>
+                    <p className="text-muted-foreground text-sm mt-1">Chat with us directly on WhatsApp</p>
                   </div>
                 </div>
               </CardContent>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -111,6 +111,17 @@ const Footer = () => {
                 >
                   <MapPin className="h-4 w-4" />
                   <span>Kigali, Rwanda</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://wa.me/250788564396"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 hover:text-secondary transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>WhatsApp</span>
                 </a>
               </li>
             </ul>

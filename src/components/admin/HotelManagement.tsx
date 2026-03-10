@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash, Star, Loader2, Hotel } from 'lucide-react';
+import { Plus, Edit, Trash, Star, Loader2, Image as ImageIcon, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,18 +40,30 @@ interface RoomTypeRow {
   available: boolean;
 }
 
+interface HotelImage {
+  id: string;
+  hotel_id: string;
+  image_url: string;
+  display_order: number;
+}
+
+const MAX_HOTEL_IMAGES = 15;
+
 export const HotelManagement = () => {
   const [hotels, setHotels] = useState<HotelRow[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeRow[]>([]);
+  const [hotelImages, setHotelImages] = useState<Record<string, HotelImage[]>>({});
   const [editingHotel, setEditingHotel] = useState<HotelRow | null>(null);
   const [editingRoom, setEditingRoom] = useState<RoomTypeRow | null>(null);
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
+  const [imagesDialogOpen, setImagesDialogOpen] = useState(false);
   const [selectedHotelId, setSelectedHotelId] = useState<string>('');
+  const [selectedHotelName, setSelectedHotelName] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => { fetchHotels(); fetchRoomTypes(); }, []);
+  useEffect(() => { fetchHotels(); fetchRoomTypes(); fetchAllHotelImages(); }, []);
 
   const fetchHotels = async () => {
     const { data, error } = await supabase.from('hotels').select('*').order('created_at', { ascending: false });
@@ -63,6 +75,17 @@ export const HotelManagement = () => {
     const { data, error } = await supabase.from('room_types').select('*').order('created_at', { ascending: false });
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
     else setRoomTypes((data || []).map(r => ({ ...r, amenities: r.amenities || [] })));
+  };
+
+  const fetchAllHotelImages = async () => {
+    const { data, error } = await (supabase as any).from('hotel_images').select('*').order('display_order');
+    if (error) return;
+    const grouped: Record<string, HotelImage[]> = {};
+    (data || []).forEach((img: any) => {
+      if (!grouped[img.hotel_id]) grouped[img.hotel_id] = [];
+      grouped[img.hotel_id].push(img as HotelImage);
+    });
+    setHotelImages(grouped);
   };
 
   const handleImageUpload = async (file: File) => {
@@ -79,6 +102,45 @@ export const HotelManagement = () => {
       return null;
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleMultipleImageUpload = async (files: FileList, hotelId: string) => {
+    const currentCount = hotelImages[hotelId]?.length || 0;
+    const remaining = MAX_HOTEL_IMAGES - currentCount;
+    
+    if (files.length > remaining) {
+      toast({ title: 'Limit Reached', description: `You can only add ${remaining} more image(s). Max is ${MAX_HOTEL_IMAGES}.`, variant: 'destructive' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const url = await handleImageUpload(files[i]);
+        if (url) {
+          await (supabase as any).from('hotel_images').insert({
+            hotel_id: hotelId,
+            image_url: url,
+            display_order: currentCount + i,
+          });
+        }
+      }
+      toast({ title: 'Success', description: `${files.length} image(s) uploaded` });
+      fetchAllHotelImages();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const deleteHotelImage = async (imageId: string) => {
+    const { error } = await (supabase as any).from('hotel_images').delete().eq('id', imageId);
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else {
+      toast({ title: 'Deleted' });
+      fetchAllHotelImages();
     }
   };
 
@@ -158,7 +220,7 @@ export const HotelManagement = () => {
     if (!confirm('Delete this hotel and all its rooms?')) return;
     const { error } = await supabase.from('hotels').delete().eq('id', id);
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Deleted' }); fetchHotels(); fetchRoomTypes(); }
+    else { toast({ title: 'Deleted' }); fetchHotels(); fetchRoomTypes(); fetchAllHotelImages(); }
   };
 
   const deleteRoom = async (id: string) => {
@@ -166,6 +228,12 @@ export const HotelManagement = () => {
     const { error } = await supabase.from('room_types').delete().eq('id', id);
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
     else { toast({ title: 'Deleted' }); fetchRoomTypes(); }
+  };
+
+  const openImagesDialog = (hotel: HotelRow) => {
+    setSelectedHotelId(hotel.id);
+    setSelectedHotelName(hotel.name);
+    setImagesDialogOpen(true);
   };
 
   return (
@@ -214,7 +282,7 @@ export const HotelManagement = () => {
                       <SelectContent><SelectItem value="true">Yes</SelectItem><SelectItem value="false">No</SelectItem></SelectContent>
                     </Select>
                   </div>
-                  <div><Label htmlFor="image">Hotel Image</Label><Input id="image" name="image" type="file" accept="image/*" />
+                  <div><Label htmlFor="image">Cover Image</Label><Input id="image" name="image" type="file" accept="image/*" />
                     {editingHotel?.image_url && <img src={editingHotel.image_url} alt="Current" className="mt-2 h-20 object-cover rounded" />}
                   </div>
                   <Button type="submit" disabled={uploading}>{uploading ? 'Uploading...' : editingHotel ? 'Update Hotel' : 'Create Hotel'}</Button>
@@ -235,9 +303,15 @@ export const HotelManagement = () => {
                       <div className="flex items-center gap-1 mt-1">
                         {Array.from({ length: hotel.star_rating }).map((_, i) => <Star key={i} className="h-3 w-3 fill-primary text-primary" />)}
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {hotelImages[hotel.id]?.length || 0}/{MAX_HOTEL_IMAGES} images
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openImagesDialog(hotel)}>
+                      <ImageIcon className="h-4 w-4 mr-1" /> Images
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => { setEditingHotel(hotel); setHotelDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
                     <Button variant="destructive" size="sm" onClick={() => deleteHotel(hotel.id)}><Trash className="h-4 w-4" /></Button>
                   </div>
@@ -332,6 +406,56 @@ export const HotelManagement = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Hotel Images Dialog */}
+      <Dialog open={imagesDialogOpen} onOpenChange={setImagesDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Images for {selectedHotelName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {hotelImages[selectedHotelId]?.length || 0} / {MAX_HOTEL_IMAGES} images
+              </p>
+              {(hotelImages[selectedHotelId]?.length || 0) < MAX_HOTEL_IMAGES && (
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) handleMultipleImageUpload(e.target.files, selectedHotelId);
+                    }}
+                    disabled={uploading}
+                  />
+                </div>
+              )}
+            </div>
+            {uploading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Uploading...
+              </div>
+            )}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {(hotelImages[selectedHotelId] || []).map((img) => (
+                <div key={img.id} className="relative group aspect-square rounded-lg overflow-hidden">
+                  <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => deleteHotelImage(img.id)}
+                    className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {(!hotelImages[selectedHotelId] || hotelImages[selectedHotelId].length === 0) && (
+              <p className="text-center text-muted-foreground py-8">No images yet. Upload some!</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
