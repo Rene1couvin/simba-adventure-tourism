@@ -17,6 +17,7 @@ import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { Chat } from "./components/Chat";
+import { WhatsAppFloating } from "./components/WhatsAppButton";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Chat />
+          <WhatsAppFloating />
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

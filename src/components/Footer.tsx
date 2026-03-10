@@ -113,6 +113,17 @@ const Footer = () => {
                   <span>Kigali, Rwanda</span>
                 </a>
               </li>
+              <li>
+                <a
+                  href="https://wa.me/250788564396"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 hover:text-secondary transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>WhatsApp</span>
+                </a>
+              </li>
             </ul>
           </div>
 

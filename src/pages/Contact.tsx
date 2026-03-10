@@ -136,6 +136,26 @@ const Contact = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-start space-x-4">
+                  <MessageCircle className="h-6 w-6 text-primary mt-1" />
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">WhatsApp</h3>
+                    <a
+                      href="https://wa.me/250788564396"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      +250 788 564 396
+                    </a>
+                    <p className="text-muted-foreground text-sm mt-1">Chat with us directly on WhatsApp</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-start space-x-4">
                   <Clock className="h-6 w-6 text-primary mt-1" />
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Business Hours</h3>

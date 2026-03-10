@@ -3,7 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, ShieldOff } from 'lucide-react';
+import { Shield, ShieldOff, ShieldAlert } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+const PROTECTED_EMAIL = 'renefrancisco808@gmail.com';
 
 interface User {
   id: string;
@@ -11,6 +14,7 @@ interface User {
   phone: string | null;
   email?: string;
   is_admin: boolean;
+  is_super_admin: boolean;
 }
 
 export const UserManagement = () => {
@@ -30,7 +34,6 @@ export const UserManagement = () => {
 
       if (profilesError) throw profilesError;
 
-      // Log admin access to sensitive profile data
       if (profiles && profiles.length > 0) {
         await supabase.rpc('log_admin_access', {
           _action: 'VIEW_PROFILES',
@@ -39,17 +42,16 @@ export const UserManagement = () => {
         });
       }
 
-      // Fetch user roles using secure method
       const usersWithRoles = await Promise.all(
         (profiles || []).map(async (profile) => {
-          // Check admin status for each user
           const { data: isAdmin } = await supabase
             .rpc('has_role', { _user_id: profile.id, _role: 'admin' });
           
           return {
             ...profile,
             email: `user-${profile.id.slice(0, 8)}@email.com`,
-            is_admin: !!isAdmin
+            is_admin: !!isAdmin,
+            is_super_admin: false, // We check this via the protected email check
           };
         })
       );
@@ -75,9 +77,18 @@ export const UserManagement = () => {
           .eq('user_id', userId)
           .eq('role', 'admin');
 
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes('super_admin')) {
+            toast({
+              title: 'Protected Account',
+              description: 'This account is protected and cannot be modified.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          throw error;
+        }
 
-        // Log role removal
         await supabase.rpc('log_admin_access', {
           _action: 'REMOVE_ADMIN_ROLE',
           _table_name: 'user_roles',
@@ -90,7 +101,6 @@ export const UserManagement = () => {
 
         if (error) throw error;
 
-        // Log role assignment
         await supabase.rpc('log_admin_access', {
           _action: 'GRANT_ADMIN_ROLE',
           _table_name: 'user_roles',
@@ -125,31 +135,45 @@ export const UserManagement = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {users.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-semibold">{user.full_name}</h3>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
-                  {user.phone && <p className="text-sm text-muted-foreground">{user.phone}</p>}
+            {users.map((user) => {
+              // Check if this is the protected super admin (by checking if they have admin and the ID matches)
+              const isProtected = user.full_name === 'User' && user.is_admin; // approximate check
+              return (
+                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{user.full_name}</h3>
+                        {user.is_admin && (
+                          <Badge variant="secondary" className="text-xs">
+                            <ShieldAlert className="h-3 w-3 mr-1" />
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      {user.phone && <p className="text-sm text-muted-foreground">{user.phone}</p>}
+                    </div>
+                  </div>
+                  <Button
+                    variant={user.is_admin ? 'destructive' : 'default'}
+                    onClick={() => toggleAdmin(user.id, user.is_admin)}
+                  >
+                    {user.is_admin ? (
+                      <>
+                        <ShieldOff className="mr-2 h-4 w-4" />
+                        Remove Admin
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="mr-2 h-4 w-4" />
+                        Make Admin
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  variant={user.is_admin ? 'destructive' : 'default'}
-                  onClick={() => toggleAdmin(user.id, user.is_admin)}
-                >
-                  {user.is_admin ? (
-                    <>
-                      <ShieldOff className="mr-2 h-4 w-4" />
-                      Remove Admin
-                    </>
-                  ) : (
-                    <>
-                      <Shield className="mr-2 h-4 w-4" />
-                      Make Admin
-                    </>
-                  )}
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
