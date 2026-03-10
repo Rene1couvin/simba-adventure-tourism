@@ -78,12 +78,12 @@ export const HotelManagement = () => {
   };
 
   const fetchAllHotelImages = async () => {
-    const { data, error } = await supabase.from('hotel_images').select('*').order('display_order');
+    const { data, error } = await (supabase as any).from('hotel_images').select('*').order('display_order');
     if (error) return;
     const grouped: Record<string, HotelImage[]> = {};
-    data?.forEach(img => {
+    (data || []).forEach((img: any) => {
       if (!grouped[img.hotel_id]) grouped[img.hotel_id] = [];
-      grouped[img.hotel_id].push(img);
+      grouped[img.hotel_id].push(img as HotelImage);
     });
     setHotelImages(grouped);
   };
