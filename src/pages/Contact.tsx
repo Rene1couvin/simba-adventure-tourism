@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
