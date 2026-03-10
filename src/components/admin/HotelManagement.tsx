@@ -119,7 +119,7 @@ export const HotelManagement = () => {
       for (let i = 0; i < files.length; i++) {
         const url = await handleImageUpload(files[i]);
         if (url) {
-          await supabase.from('hotel_images').insert({
+          await (supabase as any).from('hotel_images').insert({
             hotel_id: hotelId,
             image_url: url,
             display_order: currentCount + i,
