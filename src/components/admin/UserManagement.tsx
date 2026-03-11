@@ -147,7 +147,7 @@ export const UserManagement = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      {user.phone && <p className="text-sm text-muted-foreground">{user.phone}</p>}
                       {user.phone && <p className="text-sm text-muted-foreground">{user.phone}</p>}
                     </div>
                   </div>

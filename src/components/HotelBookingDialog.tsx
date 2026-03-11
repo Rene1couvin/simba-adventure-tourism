@@ -61,19 +61,16 @@ export const HotelBookingDialog = ({ open, onOpenChange, hotel, roomType }: Hote
         return;
       }
 
+      // Use server-side RPC to create booking with verified price
       const { error } = await supabase
-        .from('hotel_bookings')
-        .insert({
-          user_id: user.id,
-          hotel_id: hotel.id,
-          room_type_id: roomType.id,
-          check_in_date: checkIn.toISOString().split('T')[0],
-          check_out_date: checkOut.toISOString().split('T')[0],
-          number_of_guests: guests,
-          number_of_rooms: rooms,
-          total_price: totalPrice,
-          special_requests: specialRequests || null,
-          status: 'pending',
+        .rpc('book_hotel', {
+          _hotel_id: hotel.id,
+          _room_type_id: roomType.id,
+          _check_in_date: checkIn.toISOString().split('T')[0],
+          _check_out_date: checkOut.toISOString().split('T')[0],
+          _number_of_guests: guests,
+          _number_of_rooms: rooms,
+          _special_requests: specialRequests || null,
         });
 
       if (error) throw error;
