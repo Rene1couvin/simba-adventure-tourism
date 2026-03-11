@@ -46,9 +46,8 @@ export const UserManagement = () => {
           
           return {
             ...profile,
-            email: `user-${profile.id.slice(0, 8)}@email.com`,
             is_admin: !!isAdmin,
-            is_super_admin: false, // We check this via the protected email check
+            is_super_admin: false,
           };
         })
       );
