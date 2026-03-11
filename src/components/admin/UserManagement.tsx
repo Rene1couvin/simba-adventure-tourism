@@ -6,13 +6,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Shield, ShieldOff, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-const PROTECTED_EMAIL = 'renefrancisco808@gmail.com';
-
 interface User {
   id: string;
   full_name: string;
   phone: string | null;
-  email?: string;
   is_admin: boolean;
   is_super_admin: boolean;
 }

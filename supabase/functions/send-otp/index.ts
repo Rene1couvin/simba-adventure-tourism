@@ -88,10 +88,9 @@ serve(async (req: Request) => {
       .eq("verified", false);
 
     // Generate 6-digit OTP
-    const otp = Array.from(crypto.getRandomValues(new Uint8Array(3)))
+    const otp = Array.from(crypto.getRandomValues(new Uint8Array(6)))
       .map((b) => (b % 10).toString())
       .join("")
-      .padEnd(6, "0")
       .slice(0, 6);
 
     const codeHash = await hashOtp(otp);

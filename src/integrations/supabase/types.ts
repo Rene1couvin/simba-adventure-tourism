@@ -579,6 +579,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      book_hotel: {
+        Args: {
+          _check_in_date: string
+          _check_out_date: string
+          _hotel_id: string
+          _number_of_guests: number
+          _number_of_rooms: number
+          _room_type_id: string
+          _special_requests?: string
+        }
+        Returns: string
+      }
+      book_tour: {
+        Args: {
+          _booking_date: string
+          _number_of_people: number
+          _special_requests?: string
+          _tour_id: string
+        }
+        Returns: string
+      }
       cleanup_expired_otps: { Args: never; Returns: undefined }
       current_user_has_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
