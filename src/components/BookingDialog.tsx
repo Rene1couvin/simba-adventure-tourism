@@ -62,24 +62,18 @@ export const BookingDialog = ({ open, onOpenChange, tour }: BookingDialogProps) 
         return;
       }
 
-      const totalPrice = tour.price * values.numberOfPeople;
-
-      // Create booking
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          tour_id: tour.id,
-          booking_date: values.bookingDate.toISOString(),
-          number_of_people: values.numberOfPeople,
-          total_price: totalPrice,
-          special_requests: values.specialRequests || null,
-          status: 'pending',
-        })
-        .select()
-        .single();
+      // Use server-side RPC to create booking with verified price
+      const { data: bookingId, error: bookingError } = await supabase
+        .rpc('book_tour', {
+          _tour_id: tour.id,
+          _booking_date: values.bookingDate.toISOString(),
+          _number_of_people: values.numberOfPeople,
+          _special_requests: values.specialRequests || null,
+        });
 
       if (bookingError) throw bookingError;
+
+      const totalPrice = tour.price * values.numberOfPeople;
 
       // Get user profile
       const { data: profile } = await supabase
