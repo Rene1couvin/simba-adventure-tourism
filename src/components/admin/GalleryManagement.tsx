@@ -105,6 +105,64 @@ export const GalleryManagement = () => {
     }
   };
 
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}-${i}.${fileExt}`;
+          const filePath = `gallery/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('tour-images')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('tour-images')
+            .getPublicUrl(filePath);
+
+          // Use filename (without extension) as title
+          const title = file.name.replace(/\.[^/.]+$/, '');
+
+          const { error: insertError } = await supabase
+            .from('gallery_images')
+            .insert({
+              title,
+              description: null,
+              image_url: publicUrl,
+              is_featured: false,
+            });
+
+          if (insertError) throw insertError;
+          successCount++;
+        } catch (err) {
+          console.error('Failed to upload', file.name, err);
+          failCount++;
+        }
+      }
+
+      toast({
+        title: 'Bulk Upload Complete',
+        description: `${successCount} uploaded${failCount > 0 ? `, ${failCount} failed` : ''}`,
+        variant: failCount > 0 ? 'destructive' : 'default',
+      });
+      fetchImages();
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -195,6 +253,20 @@ export const GalleryManagement = () => {
               className="pl-9 w-full sm:w-64"
             />
           </div>
+          <Button asChild variant="secondary" disabled={uploading}>
+            <label className="cursor-pointer">
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+              Bulk Upload
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleBulkUpload}
+                disabled={uploading}
+              />
+            </label>
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" /> Add Image</Button>
