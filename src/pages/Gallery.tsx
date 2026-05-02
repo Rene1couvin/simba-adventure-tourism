@@ -13,6 +13,8 @@ interface GalleryImage {
   image_url: string;
   is_featured: boolean;
   created_at: string;
+  tour_id: string | null;
+  tour_title: string | null;
   likes_count: number;
   user_has_liked: boolean;
 }
