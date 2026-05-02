@@ -147,6 +147,7 @@ export type Database = {
           image_url: string
           is_featured: boolean | null
           title: string
+          tour_id: string | null
           uploaded_by: string | null
         }
         Insert: {
@@ -156,6 +157,7 @@ export type Database = {
           image_url: string
           is_featured?: boolean | null
           title: string
+          tour_id?: string | null
           uploaded_by?: string | null
         }
         Update: {
@@ -165,9 +167,18 @@ export type Database = {
           image_url?: string
           is_featured?: boolean | null
           title?: string
+          tour_id?: string | null
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "gallery_images_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "tours"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hotel_bookings: {
         Row: {
