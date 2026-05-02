@@ -1,0 +1,2 @@
+ALTER TABLE public.gallery_images ADD COLUMN IF NOT EXISTS tour_id uuid REFERENCES public.tours(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_gallery_images_tour_id ON public.gallery_images(tour_id);

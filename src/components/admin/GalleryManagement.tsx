@@ -5,11 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Heart, Users, Loader2, Search, Calendar } from 'lucide-react';
+import { Plus, Trash2, Heart, Users, Loader2, Search, Calendar, MapPin } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+
+interface Tour {
+  id: string;
+  title: string;
+}
 
 interface GalleryImage {
   id: string;
@@ -18,6 +24,8 @@ interface GalleryImage {
   image_url: string;
   is_featured: boolean;
   created_at: string;
+  tour_id: string | null;
+  tours?: { title: string } | null;
 }
 
 interface LikeDetail {
@@ -26,8 +34,11 @@ interface LikeDetail {
   created_at: string;
 }
 
+const UNASSIGNED = '__none__';
+
 export const GalleryManagement = () => {
   const [images, setImages] = useState<GalleryImage[]>([]);
+  const [tours, setTours] = useState<Tour[]>([]);
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -36,30 +47,37 @@ export const GalleryManagement = () => {
   const [selectedImageLikes, setSelectedImageLikes] = useState<LikeDetail[]>([]);
   const [likesSearch, setLikesSearch] = useState('');
   const [imageSearch, setImageSearch] = useState('');
+  const [bulkTourId, setBulkTourId] = useState<string>(UNASSIGNED);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     image_url: '',
     is_featured: false,
+    tour_id: UNASSIGNED as string,
   });
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchImages();
+    fetchTours();
   }, []);
+
+  const fetchTours = async () => {
+    const { data } = await supabase.from('tours').select('id, title').order('title');
+    setTours(data || []);
+  };
 
   const fetchImages = async () => {
     try {
       const { data, error } = await supabase
         .from('gallery_images')
-        .select('*')
+        .select('*, tours(title)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setImages(data || []);
+      setImages((data as any) || []);
 
-      // Fetch all like counts
       const { data: likesData } = await supabase
         .from('image_likes')
         .select('image_id');
@@ -112,6 +130,7 @@ export const GalleryManagement = () => {
     setUploading(true);
     let successCount = 0;
     let failCount = 0;
+    const tourIdToAssign = bulkTourId === UNASSIGNED ? null : bulkTourId;
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -131,7 +150,6 @@ export const GalleryManagement = () => {
             .from('tour-images')
             .getPublicUrl(filePath);
 
-          // Use filename (without extension) as title
           const title = file.name.replace(/\.[^/.]+$/, '');
 
           const { error: insertError } = await supabase
@@ -141,6 +159,7 @@ export const GalleryManagement = () => {
               description: null,
               image_url: publicUrl,
               is_featured: false,
+              tour_id: tourIdToAssign,
             });
 
           if (insertError) throw insertError;
@@ -173,13 +192,14 @@ export const GalleryManagement = () => {
           description: formData.description || null,
           image_url: formData.image_url,
           is_featured: formData.is_featured,
+          tour_id: formData.tour_id === UNASSIGNED ? null : formData.tour_id,
         });
 
       if (error) throw error;
 
       toast({ title: 'Success', description: 'Image added to gallery' });
       setDialogOpen(false);
-      setFormData({ title: '', description: '', image_url: '', is_featured: false });
+      setFormData({ title: '', description: '', image_url: '', is_featured: false, tour_id: UNASSIGNED });
       fetchImages();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -232,7 +252,8 @@ export const GalleryManagement = () => {
   );
 
   const filteredImages = images.filter(img =>
-    img.title.toLowerCase().includes(imageSearch.toLowerCase())
+    img.title.toLowerCase().includes(imageSearch.toLowerCase()) ||
+    (img.tours?.title || '').toLowerCase().includes(imageSearch.toLowerCase())
   );
 
   if (loading) {
@@ -243,16 +264,27 @@ export const GalleryManagement = () => {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h2 className="text-2xl font-bold">Gallery Management</h2>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-initial">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search images..."
+              placeholder="Search images or tour..."
               value={imageSearch}
               onChange={(e) => setImageSearch(e.target.value)}
               className="pl-9 w-full sm:w-64"
             />
           </div>
+          <Select value={bulkTourId} onValueChange={setBulkTourId}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Tour for bulk upload" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={UNASSIGNED}>No tour</SelectItem>
+              {tours.map(t => (
+                <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button asChild variant="secondary" disabled={uploading}>
             <label className="cursor-pointer">
               {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
@@ -285,6 +317,23 @@ export const GalleryManagement = () => {
                   />
                 </div>
                 <div>
+                  <Label>Tour</Label>
+                  <Select
+                    value={formData.tour_id}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, tour_id: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a tour (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UNASSIGNED}>No tour</SelectItem>
+                      {tours.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label>Description</Label>
                   <Textarea
                     value={formData.description}
@@ -315,13 +364,18 @@ export const GalleryManagement = () => {
               <img src={image.image_url} alt={image.title} className="w-full h-full object-cover" />
             </div>
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{image.title}</CardTitle>
-                <Badge variant="secondary" className="flex items-center gap-1">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-lg truncate">{image.title}</CardTitle>
+                <Badge variant="secondary" className="flex items-center gap-1 shrink-0">
                   <Heart className="h-3 w-3" />
                   {likeCounts[image.id] || 0}
                 </Badge>
               </div>
+              {image.tours?.title && (
+                <Badge variant="outline" className="w-fit flex items-center gap-1 mt-1">
+                  <MapPin className="h-3 w-3" /> {image.tours.title}
+                </Badge>
+              )}
             </CardHeader>
             <CardContent>
               {image.description && (
@@ -340,7 +394,6 @@ export const GalleryManagement = () => {
         ))}
       </div>
 
-      {/* Likes Detail Dialog */}
       <Dialog open={likesDialogOpen} onOpenChange={setLikesDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
