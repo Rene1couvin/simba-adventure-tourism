@@ -253,6 +253,20 @@ export const GalleryManagement = () => {
               className="pl-9 w-full sm:w-64"
             />
           </div>
+          <Button asChild variant="secondary" disabled={uploading}>
+            <label className="cursor-pointer">
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+              Bulk Upload
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleBulkUpload}
+                disabled={uploading}
+              />
+            </label>
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" /> Add Image</Button>
