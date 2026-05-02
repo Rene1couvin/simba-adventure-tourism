@@ -44,17 +44,15 @@ const Gallery = () => {
     try {
       const { data: imagesData, error: imagesError } = await supabase
         .from('gallery_images')
-        .select('*')
+        .select('*, tours(title)')
         .order('created_at', { ascending: false });
 
       if (imagesError) throw imagesError;
 
-      // Get likes counts
       const { data: likesData } = await supabase
         .from('image_likes')
         .select('image_id');
 
-      // Get user's likes if logged in
       let userLikes: string[] = [];
       if (userId) {
         const { data: userLikesData } = await supabase
@@ -64,14 +62,14 @@ const Gallery = () => {
         userLikes = userLikesData?.map(l => l.image_id) || [];
       }
 
-      // Count likes per image
       const likeCounts: Record<string, number> = {};
       likesData?.forEach(like => {
         likeCounts[like.image_id] = (likeCounts[like.image_id] || 0) + 1;
       });
 
-      const processedImages = imagesData?.map(img => ({
+      const processedImages: GalleryImage[] = (imagesData as any[])?.map(img => ({
         ...img,
+        tour_title: img.tours?.title || null,
         likes_count: likeCounts[img.id] || 0,
         user_has_liked: userLikes.includes(img.id),
       })) || [];
